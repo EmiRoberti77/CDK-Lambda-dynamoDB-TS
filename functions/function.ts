@@ -1,6 +1,7 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult, Context, Handler } from 'aws-lambda';
+import { APIGatewayEvent, APIGatewayProxyEvent, APIGatewayProxyResult, Context, Handler } from 'aws-lambda';
 
 import {DynamoDBClient, PutItemCommand, GetItemCommand, AttributeValue} from '@aws-sdk/client-dynamodb'
+import { ConfirmPermissionsBroadening } from 'aws-cdk-lib/pipelines';
 
 const awsConfigs = {
   tablename:'CdkTypescriptStack-cdkHelloTableA8F0CB64-7IDLWV0CAWO7',
@@ -27,7 +28,7 @@ export const handler = async (event:APIGatewayProxyEvent, context:Context):Promi
     console.log('method',method)
 
     if (method === Http.GET) {
-        return await getHello(event)
+        return await getName(event)
      } else if (method === Http.POST) {
         return await saveItem(event);
      } else {
@@ -40,18 +41,11 @@ export const handler = async (event:APIGatewayProxyEvent, context:Context):Promi
      }  
 };
   
-async function getHello(event : any ) {
-    
-    const name = event.queryStringParameters.name;
-    const item = await getItem(name);
+async function getName(event:APIGatewayEvent ):Promise<APIGatewayProxyResult> {
 
-      return {
-        statusCode: 200,
-        body: JSON.stringify(item.body),
-      };
-  };
-  
-async function getItem(name : string ):Promise<APIGatewayProxyResult> {
+  const {name} = event.queryStringParameters!
+  console.log('name=', name)
+
   const result = await dynamo.send(new GetItemCommand({
     TableName: awsConfigs.tablename,
     Key: {
@@ -79,10 +73,6 @@ async function getItem(name : string ):Promise<APIGatewayProxyResult> {
 }
   
 async function saveItem(event : APIGatewayProxyEvent):Promise<APIGatewayProxyResult> {
-
-  console.log('in saveItem lambda =>', event);
-  console.log('in saveItem event.body =>', event.body);
-  console.log('V3')
 
   try {
   const result = await dynamo.send(new PutItemCommand({

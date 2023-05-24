@@ -6,6 +6,7 @@ import {Runtime, FunctionUrlAuthType } from "aws-cdk-lib/aws-lambda";
 import {NodejsFunction} from "aws-cdk-lib/aws-lambda-nodejs"
 import * as path from 'path';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { NumberAttribute } from 'aws-cdk-lib/aws-cognito';
 
 export class CdkTypescriptStack extends Stack {
   private TABLE_NAME = 'cdkHelloTable';
