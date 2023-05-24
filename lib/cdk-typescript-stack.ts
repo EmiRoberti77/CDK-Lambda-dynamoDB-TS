@@ -5,14 +5,17 @@ import { AttributeType, Table } from 'aws-cdk-lib/aws-dynamodb';
 import {Runtime, FunctionUrlAuthType } from "aws-cdk-lib/aws-lambda";
 import {NodejsFunction} from "aws-cdk-lib/aws-lambda-nodejs"
 import * as path from 'path';
-import { TABLE_NAME } from '../shares/utils';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+
 export class CdkTypescriptStack extends Stack {
+  private TABLE_NAME = 'cdkHelloTable';
+  private AWS_REGION = 'us-east-1';
+
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
     //Dynamodb table definition
-    const table = new Table(this, TABLE_NAME, {
+    const table = new Table(this, this.TABLE_NAME, {
       partitionKey: { name: "name", type: AttributeType.STRING },
     });
 
@@ -22,7 +25,7 @@ export class CdkTypescriptStack extends Stack {
       entry: path.join(__dirname, `/../functions/function.ts`),
       handler: "handler",
       environment: {
-        HELLO_TABLE_NAME: TABLE_NAME,
+        HELLO_TABLE_NAME: this.TABLE_NAME,
       },
     });
 

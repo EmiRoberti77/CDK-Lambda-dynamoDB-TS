@@ -1,11 +1,14 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context, Handler } from 'aws-lambda';
 
 import {DynamoDBClient, PutItemCommand, GetItemCommand, AttributeValue} from '@aws-sdk/client-dynamodb'
-import { AWS_REGION, TABLE_NAME } from '../shares/utils';
+
+const awsConfigs = {
+  tablename:'CdkTypescriptStack-cdkHelloTableA8F0CB64-7IDLWV0CAWO7',
+  awsregion :'us-east-1'
+}
 
 const dynamo = new DynamoDBClient({
-  region: AWS_REGION
-})
+  region: awsConfigs.awsregion})
 
 enum Http {
   POST='POST',
@@ -18,7 +21,7 @@ interface Person {
 
 export const handler = async (event:APIGatewayProxyEvent, context:Context):Promise<APIGatewayProxyResult> => {
 
-    console.log('in lambda tablename=',TABLE_NAME);
+    console.log('in lambda tablename=',awsConfigs.tablename);
 
     const method = event.httpMethod
     console.log('method',method)
@@ -50,7 +53,7 @@ async function getHello(event : any ) {
   
 async function getItem(name : string ):Promise<APIGatewayProxyResult> {
   const result = await dynamo.send(new GetItemCommand({
-    TableName: TABLE_NAME,
+    TableName: awsConfigs.tablename,
     Key: {
       name: {
         S: name
@@ -70,7 +73,7 @@ async function getItem(name : string ):Promise<APIGatewayProxyResult> {
   return{
     statusCode: 400,
     body:JSON.stringify({
-      message: `failed to get data for ${name} ( table - ${TABLE_NAME})`
+      message: `failed to get data for ${name} ( table - ${awsConfigs.tablename})`
     })
   }
 }
@@ -79,22 +82,35 @@ async function saveItem(event : APIGatewayProxyEvent):Promise<APIGatewayProxyRes
 
   console.log('in saveItem lambda =>', event);
   console.log('in saveItem event.body =>', event.body);
+  console.log('V3')
 
+  try {
   const result = await dynamo.send(new PutItemCommand({
-      TableName: TABLE_NAME, 
+      TableName: awsConfigs.tablename, 
       Item: {
         name: {
           S: event.queryStringParameters!.name!
         }
       }
     }));
+    
+    console.log(result)
 
-  console.log(result)
+    return{
+      statusCode:200,
+      body:JSON.stringify({
+        message:result
+      })
+    };
 
-  return{
-    statusCode:200,
-    body:JSON.stringify({
-      message:result
-    })
+  } catch(err) {
+    console.log(err);
   }
+
+  return {
+    statusCode:501,
+    body:JSON.stringify({
+      message:'Error for saving data'
+    })
+  };
 }
