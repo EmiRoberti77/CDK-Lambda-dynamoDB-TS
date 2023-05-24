@@ -1,99 +1,100 @@
-import { Handler } from 'aws-lambda';
+import { APIGatewayProxyEvent, APIGatewayProxyResult, Context, Handler } from 'aws-lambda';
 
-import { DynamoDB } from 'aws-sdk';
+import {DynamoDBClient, PutItemCommand, GetItemCommand, AttributeValue} from '@aws-sdk/client-dynamodb'
+import { AWS_REGION, TABLE_NAME } from '../shares/utils';
 
-const dynamo = new DynamoDB.DocumentClient();
-const TABLE_NAME : string = process.env.HELLO_TABLE_NAME!;
+const dynamo = new DynamoDBClient({
+  region: AWS_REGION
+})
 
-export const handler: Handler = async (event, context) => {
+enum Http {
+  POST='POST',
+  GET='GET'
+}
 
-    const method = event.requestContext.http.method;
+interface Person {
+  name:string;
+}
 
-    if (method === 'GET') {
+export const handler = async (event:APIGatewayProxyEvent, context:Context):Promise<APIGatewayProxyResult> => {
+
+    console.log('in lambda tablename=',TABLE_NAME);
+
+    const method = event.httpMethod
+    console.log('method',method)
+
+    if (method === Http.GET) {
         return await getHello(event)
-     } else if (method === 'POST') {
-        return await save(event);
+     } else if (method === Http.POST) {
+        return await saveItem(event);
      } else {
          return {
              statusCode: 400, 
-             body: 'Not a valid operation'
+             body: JSON.stringify({
+               message:`Error no ${Http} found`
+             })
          };
      }  
 };
-
-async function save(event : any) {
-    const name = event.queryStringParameters.name;
-  
-    const item = {
-      name: name,
-      date: Date.now(),
-    };
-  
-    console.log(item);
-    const savedItem = await saveItem(item);
-  
-    return {
-      statusCode: 200,
-      body: JSON.stringify(savedItem),
-    };
-  };
   
 async function getHello(event : any ) {
+    
     const name = event.queryStringParameters.name;
-
     const item = await getItem(name);
-  
-    if (item !== undefined && item.date) {
-      const d = new Date(item.date);
-
-      const message = `Was greeted on ${d.getDate()}/${
-        d.getMonth() + 1
-      }/${d.getFullYear()}`;
 
       return {
         statusCode: 200,
-        body: JSON.stringify(message),
+        body: JSON.stringify(item.body),
       };
-      
-    } else {
- 
-      const message = "Nobody was greeted with that name";
-      return {
-        statusCode: 200,
-        body: JSON.stringify(message),
-      };
-    }
   };
   
-async function getItem(name : string ) {
+async function getItem(name : string ):Promise<APIGatewayProxyResult> {
+  const result = await dynamo.send(new GetItemCommand({
+    TableName: TABLE_NAME,
+    Key: {
+      name: {
+        S: name
+      } as AttributeValue
+    }
+  }));
 
-    const params : DynamoDB.DocumentClient.GetItemInput = {
-        Key: {
-        name: name,
-      },
-      TableName: TABLE_NAME,
-    };
-    
-    return dynamo
-      .get(params)
-      .promise()
-      .then((result) => {
-        console.log(result);
-        return result.Item;
-      });
+  if(result.Item){
+    return {
+      statusCode: 200,
+      body:JSON.stringify({
+        message:result.Item
+      })
+    }
+  } 
+
+  return{
+    statusCode: 400,
+    body:JSON.stringify({
+      message: `failed to get data for ${name} ( table - ${TABLE_NAME})`
+    })
+  }
 }
   
-async function saveItem(item : any) {
+async function saveItem(event : APIGatewayProxyEvent):Promise<APIGatewayProxyResult> {
 
-    const params : DynamoDB.DocumentClient.PutItemInput = {
-      TableName: TABLE_NAME,
-      Item: item,
-    };
-  
-    return dynamo
-      .put(params)
-      .promise()
-      .then(() => {
-        return item;
-      });
+  console.log('in saveItem lambda =>', event);
+  console.log('in saveItem event.body =>', event.body);
+
+  const result = await dynamo.send(new PutItemCommand({
+      TableName: TABLE_NAME, 
+      Item: {
+        name: {
+          S: event.queryStringParameters!.name!
+        }
+      }
+    }));
+
+  console.log(result)
+
+  return{
+    statusCode:200,
+    body:JSON.stringify({
+      message:result
+    })
+  }
 }

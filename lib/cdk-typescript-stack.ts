@@ -5,25 +5,38 @@ import { AttributeType, Table } from 'aws-cdk-lib/aws-dynamodb';
 import {Runtime, FunctionUrlAuthType } from "aws-cdk-lib/aws-lambda";
 import {NodejsFunction} from "aws-cdk-lib/aws-lambda-nodejs"
 import * as path from 'path';
-
+import { TABLE_NAME } from '../shares/utils';
+import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 export class CdkTypescriptStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
     //Dynamodb table definition
-    const table = new Table(this, "Hello", {
+    const table = new Table(this, TABLE_NAME, {
       partitionKey: { name: "name", type: AttributeType.STRING },
     });
 
     // lambda function
-    const dynamoLambda = new NodejsFunction(this, "DynamoLambdaHandler", {
+    const dynamoLambda = new NodejsFunction(this, "HelloDynamoLambda", {
       runtime: Runtime.NODEJS_14_X,
       entry: path.join(__dirname, `/../functions/function.ts`),
       handler: "handler",
       environment: {
-        HELLO_TABLE_NAME: table.tableName,
+        HELLO_TABLE_NAME: TABLE_NAME,
       },
     });
+
+    dynamoLambda.addToRolePolicy( new PolicyStatement({
+      effect:Effect.ALLOW,
+      resources: [table.tableArn],
+      actions:[
+        'dynamodb:PutItem',
+        'dynamodb:Scan',
+        'dynamodb:GetItem',
+        'dynamodb:UpdateItem',
+        'dynamodb:DeleteItem'
+      ]
+    }))
 
     // permissions to lambda to dynamo table
     table.grantReadWriteData(dynamoLambda);
@@ -38,6 +51,5 @@ export class CdkTypescriptStack extends Stack {
     new CfnOutput(this, 'FunctionUrl', {
       value: myFunctionUrl.url,
     });
-
   }
 }
