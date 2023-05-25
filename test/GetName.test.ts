@@ -4,7 +4,7 @@ import { handler } from "../functions/function";
 const event= {
   httpMethod: 'GET',
   queryStringParameters:{
-    name:'Emiliano'
+    name:'emi roberti'
   }
 } as any
 

@@ -74,12 +74,13 @@ async function getName(event:APIGatewayEvent ):Promise<APIGatewayProxyResult> {
   
 async function saveItem(event : APIGatewayProxyEvent):Promise<APIGatewayProxyResult> {
 
+  const {name} = JSON.parse(event.body || '{}')
   try {
   const result = await dynamo.send(new PutItemCommand({
       TableName: awsConfigs.tablename, 
       Item: {
         name: {
-          S: event.queryStringParameters!.name!
+          S: name
         }
       }
     }));

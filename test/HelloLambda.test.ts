@@ -7,7 +7,7 @@ const event = {
     name: 'emi - test lambda'
   }),
   queryStringParameters:{
-    name:'Emiliano'
+    name:'franco'
   }
 }
 

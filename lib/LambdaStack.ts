@@ -6,10 +6,13 @@ import {Runtime, FunctionUrlAuthType } from "aws-cdk-lib/aws-lambda";
 import {NodejsFunction} from "aws-cdk-lib/aws-lambda-nodejs"
 import * as path from 'path';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { LambdaIntegration } from 'aws-cdk-lib/aws-apigateway';
 
-export class CdkTypescriptStack extends Stack {
+export class LambdaStack extends Stack {
   private TABLE_NAME = 'cdkHelloTable';
-  private AWS_REGION = 'us-east-1';
+  private TABLE_ARN = 'arn:aws:dynamodb:us-east-1:432599188850:table/CdkTypescriptStack-cdkHelloTableA8F0CB64-7IDLWV0CAWO7';
+  //private AWS_REGION = 'us-east-1';
+  public lambdaIntegration: LambdaIntegration;
 
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
@@ -17,6 +20,7 @@ export class CdkTypescriptStack extends Stack {
     //Dynamodb table definition
     const table = new Table(this, this.TABLE_NAME, {
       partitionKey: { name: "name", type: AttributeType.STRING },
+      tableName: this.TABLE_NAME
     });
 
     // lambda function
@@ -31,7 +35,7 @@ export class CdkTypescriptStack extends Stack {
 
     dynamoLambda.addToRolePolicy( new PolicyStatement({
       effect:Effect.ALLOW,
-      resources: [table.tableArn],
+      resources: [this.TABLE_ARN],
       actions:[
         'dynamodb:PutItem',
         'dynamodb:Scan',
@@ -54,5 +58,7 @@ export class CdkTypescriptStack extends Stack {
     new CfnOutput(this, 'FunctionUrl', {
       value: myFunctionUrl.url,
     });
+
+    this.lambdaIntegration = new LambdaIntegration(dynamoLambda);
   }
 }
